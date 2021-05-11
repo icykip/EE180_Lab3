@@ -92,11 +92,13 @@ module decode (
 
     wire isSLL = (op == `SPECIAL) & (funct == `SLL);
     wire isSRL = (op == `SPECIAL) & (funct == `SRL);
+    wire isSRA = (op == `SPECIAL) & (funct == `SRA);
+    wire isSRAV = (op == `SPECIAL) & (funct == `SRAV);
     wire isSLLV = (op == `SPECIAL) & (funct == `SLLV);
     wire isSRLV = (op == `SPECIAL) & (funct == `SRLV);
 
-    wire isShiftImm = isSLL | isSRL;
-    wire isShift = isShiftImm | isSLLV | isSRLV;
+    wire isShiftImm = isSLL | isSRL | isSRA;
+    wire isShift = isShiftImm | isSLLV | isSRLV | isSRAV;
 
 //******************************************************************************
 // ALU instructions decode / control signal for ALU datapath
@@ -120,6 +122,7 @@ module decode (
             {`BEQ, `DC6}:       alu_opcode = `ALU_SUBU;
             {`BNE, `DC6}:       alu_opcode = `ALU_SUBU;
             {`SPECIAL, `ADD}:   alu_opcode = `ALU_ADD;
+            {`SPECIAL, `MUL}:   alu_opcode = `ALU_MUL;
             {`SPECIAL, `ADDU}:  alu_opcode = `ALU_ADDU;
             {`SPECIAL, `SUB}:   alu_opcode = `ALU_SUB;
             {`SPECIAL, `SUBU}:  alu_opcode = `ALU_SUBU;
@@ -133,6 +136,8 @@ module decode (
             {`SPECIAL, `SLTU}:  alu_opcode = `ALU_SLTU;
             {`SPECIAL, `SLL}:   alu_opcode = `ALU_SLL;
             {`SPECIAL, `SRL}:   alu_opcode = `ALU_SRL;
+            {`SPECIAL, `SRA}:   alu_opcode = `ALU_SRA;
+            {`SPECIAL, `SRAV}:  alu_opcode = `ALU_SRA;
             {`SPECIAL, `SLLV}:  alu_opcode = `ALU_SLL;
             {`SPECIAL, `SRLV}:  alu_opcode = `ALU_SRL;
             // compare rs data to 0, only care about 1 operand
@@ -170,10 +175,10 @@ module decode (
 // forwarding and stalling logic
 //******************************************************************************
 
-    wire forward_rs_mem = &{rs_addr == reg_write_addr_mem, rs_addr != `ZERO, reg_we_mem};
-    wire forward_rt_mem = &{rt_addr == reg_write_addr_mem, rt_addr != `ZERO, ~use_imm};
+    wire forward_rs_mem = &{rs_addr == reg_write_addr_mem, rs_addr != `ZERO, reg_we_mem, ~forward_rs_ex};
+    wire forward_rt_mem = &{rt_addr == reg_write_addr_mem, rt_addr != `ZERO, ~use_imm, ~forward_rt_ex};
     wire forward_rs_ex = &{rs_addr == reg_write_addr_ex, rs_addr != `ZERO, ~mem_read_ex, reg_we_ex};
-    wire forward_rt_ex = &{rt_addr == reg_write_addr_ex, rt_addr != `ZERO, ~mem_read_ex, reg_we_ex, ~forward_rs_ex};
+    wire forward_rt_ex = &{rt_addr == reg_write_addr_ex, rt_addr != `ZERO, ~mem_read_ex, reg_we_ex};
 
     assign rs_data = forward_rs_mem ? reg_write_data_mem : forward_rs_ex ? alu_result_ex : rs_data_in;
     assign rt_data = forward_rt_mem ? reg_write_data_mem : forward_rt_ex ? alu_result_ex : rt_data_in;
