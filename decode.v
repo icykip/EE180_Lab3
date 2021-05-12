@@ -82,9 +82,9 @@ module decode (
 // jump instructions decode
 //******************************************************************************
 
-    wire isJ    = |{op == `J, op == `JR, op == `JAL, op == `JALR};
-    wire isR    = |{op == `JR, op == `JALR};
-    wire isJAL  = |{op == `JAL, op == `JALR};
+    wire isJ    = |{op == `J, op == `JAL};
+    wire isR    = |{funct == `JR, funct == `JALR} & (op != `LUI);
+    //wire isJAL  = |{op == `JAL, funct == `JALR};
 
 //******************************************************************************
 // shift instruction decode
@@ -122,7 +122,6 @@ module decode (
             {`BEQ, `DC6}:       alu_opcode = `ALU_SUBU;
             {`BNE, `DC6}:       alu_opcode = `ALU_SUBU;
             {`SPECIAL, `ADD}:   alu_opcode = `ALU_ADD;
-            {`SPECIAL, `MUL}:   alu_opcode = `ALU_MUL;
             {`SPECIAL, `ADDU}:  alu_opcode = `ALU_ADDU;
             {`SPECIAL, `SUB}:   alu_opcode = `ALU_SUB;
             {`SPECIAL, `SUBU}:  alu_opcode = `ALU_SUBU;
@@ -140,6 +139,7 @@ module decode (
             {`SPECIAL, `SRAV}:  alu_opcode = `ALU_SRA;
             {`SPECIAL, `SLLV}:  alu_opcode = `ALU_SLL;
             {`SPECIAL, `SRLV}:  alu_opcode = `ALU_SRL;
+            {`SPECIAL2, `MUL}:   alu_opcode = `ALU_MUL;
             // compare rs data to 0, only care about 1 operand
             {`BGTZ, `DC6}:      alu_opcode = `ALU_PASSX;
             {`BLEZ, `DC6}:      alu_opcode = `ALU_PASSX;
@@ -259,7 +259,7 @@ module decode (
                            (isBLTZNL | isBLTZAL) & isLTZ,              
                            isBLEZ & (isLTZ | rs_data == 0)};                             
 
-    assign jump_target = isJ;
+    assign jump_target = isJ | isR;
     assign use_reg = isR;
 
 endmodule
