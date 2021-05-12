@@ -83,7 +83,7 @@ module decode (
 //******************************************************************************
 
     wire isJ    = |{op == `J, op == `JAL};
-    wire isR    = |{funct == `JR, funct == `JALR} & (op != `LUI);
+    wire isR    = |{funct == `JR, funct == `JALR} & (op == `SPECIAL);
     //wire isJAL  = |{op == `JAL, funct == `JALR};
 
 //******************************************************************************
@@ -169,7 +169,7 @@ module decode (
     wire [31:0] imm_upper = {immediate, 16'b0};
 
     wire [31:0] imm = (op == `LUI) ? imm_upper :
-                      (op == `ORI) ? imm_zero_extended : imm_sign_extend;
+                      ((op == `ORI) | (op == `XORI)) ? imm_zero_extended : imm_sign_extend;
 
 //******************************************************************************
 // forwarding and stalling logic
@@ -226,8 +226,8 @@ module decode (
 // Memory control
 //******************************************************************************
     assign mem_we = |{op == `SW, op == `SB, op == `SC};    // write to memory
-    assign mem_read = 1'b0;                     // use memory data for writing to a register
-    assign mem_byte = |{op == `SB, op == `LB, op == `LBU};    // memory operations use only one byte
+    assign mem_read = |{op == `LB, op == `LBU, op == `LW};  // use memory data for writing to a register
+    assign mem_byte = |{op == `SB, op == `LB, op == `LBU};  // memory operations use only one byte
     assign mem_signextend = ~|{op == `LBU};     // sign extend sub-word memory reads
 
 //******************************************************************************
