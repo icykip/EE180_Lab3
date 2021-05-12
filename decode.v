@@ -195,7 +195,7 @@ module decode (
     assign stall = (rs_mem_dependency & read_from_rs) | (rt_mem_dependency & read_from_rt);
 
     assign jr_pc = rs_data;
-    assign mem_write_data = rt_data;
+    assign mem_write_data = (op == `SC) ? atomic_id : rt_data;
 
 //******************************************************************************
 // Determine ALU inputs and register writeback address
@@ -226,7 +226,7 @@ module decode (
 // Memory control
 //******************************************************************************
     assign mem_we = |{op == `SW, op == `SB, op == `SC};    // write to memory
-    assign mem_read = |{op == `LB, op == `LBU, op == `LW};  // use memory data for writing to a register
+    assign mem_read = |{op == `LB, op == `LBU, op == `LW, op == `LL};  // use memory data for writing to a register
     assign mem_byte = |{op == `SB, op == `LB, op == `LBU};  // memory operations use only one byte
     assign mem_signextend = ~|{op == `LBU};     // sign extend sub-word memory reads
 
@@ -236,10 +236,10 @@ module decode (
     assign mem_sc_id = (op == `SC);
 
     // 'atomic_id' is high when a load-linked has not been followed by a store.
-    assign atomic_id = 1'b0;
+    assign atomic_id = (op == `LL) ? 1'b1 : (mem_we & (op != `SC)) ? 1'b0 : atomic_ex; 
 
     // 'mem_sc_mask_id' is high when a store conditional should not store
-    assign mem_sc_mask_id = 1'b0;
+    assign mem_sc_mask_id = ~atomic_id & mem_sc_id;
 
 //******************************************************************************
 // Branch resolution
